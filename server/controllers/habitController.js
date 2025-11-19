@@ -1,92 +1,131 @@
-// controllers/habitController.js
+const prisma = require("../prismaClient");
 
 // GET /api/habits
-// Return all habits (active + inactive) as placeholder static data
-const getHabits = (req, res) => {
-  const habits = [
-    {
-      id: 1,
-      name: "Morning Exercise",
-      description: "30 minutes of cardio",
-      frequency: "DAILY",
-      isActive: true,
-      createdAt: "2024-01-01T00:00:00.000Z",
-      updatedAt: "2024-01-01T00:00:00.000Z",
-    },
-    {
-      id: 2,
-      name: "Read Books",
-      description: "Read for 30 minutes",
-      frequency: "DAILY",
-      isActive: true,
-      createdAt: "2024-01-02T00:00:00.000Z",
-      updatedAt: "2024-01-02T00:00:00.000Z",
-    },
-    {
-      id: 3,
-      name: "Weekly Review",
-      description: "Weekly planning session",
-      frequency: "WEEKLY",
-      isActive: false,
-      createdAt: "2024-01-03T00:00:00.000Z",
-      updatedAt: "2024-01-03T00:00:00.000Z",
-    },
-  ];
-
-  res.status(200).json({ habits });
+const getHabits = async (req, res) => {
+  try {
+    const habits = await prisma.habit.findMany();
+    res.status(200).json({ habits });
+  } catch (err) {
+    console.error("Error getting habits:", err);
+    res.status(500).json({
+      error: "ServerError",
+      message: "Something went wrong.",
+    });
+  }
 };
 
 // POST /api/habits
-// Accept { name, description?, frequency } and return placeholder Habit
-const createHabit = (req, res) => {
-  const { name, description, frequency } = req.body;
+const createHabit = async (req, res) => {
+  try {
+    const { name, description, frequency } = req.body;
 
-  // Minimal validation to match your spec
-  if (!name) {
-    return res.status(400).json({
-      error: "ValidationError",
-      message: "Name is required.",
-      details: {},
+    if (!name) {
+      return res.status(400).json({
+        error: "ValidationError",
+        message: "Name is required.",
+        details: {},
+      });
+    }
+
+    if (frequency !== "DAILY" && frequency !== "WEEKLY") {
+      return res.status(400).json({
+        error: "ValidationError",
+        message: "Frequency must be DAILY or WEEKLY.",
+        details: {},
+      });
+    }
+
+    const habit = await prisma.habit.create({
+      data: {
+        name,
+        description: description || "",
+        frequency,          // stored as String in DB
+        isActive: true,
+      },
+    });
+
+    res.status(201).json({ habit });
+  } catch (err) {
+    console.error("Error creating habit:", err);
+    res.status(500).json({
+      error: "ServerError",
+      message: "Something went wrong.",
     });
   }
-
-  // In V1 placeholder mode, we ignore the actual DB and just construct a sample
-  const habit = {
-    id: 4,
-    name,
-    description: description || "",
-    frequency: frequency || "DAILY",
-    isActive: true,
-    createdAt: "2024-01-04T00:00:00.000Z",
-    updatedAt: "2024-01-04T00:00:00.000Z",
-  };
-
-  res.status(201).json({ habit });
 };
 
 // PUT /api/habits/:id
-// Accept partial { name?, description?, frequency?, isActive? } and return placeholder updated Habit
-const updateHabit = (req, res) => {
+const updateHabit = async (req, res) => {
   const { id } = req.params;
   const { name, description, frequency, isActive } = req.body;
 
-  const habit = {
-    id: Number(id),
-    name: name || "Updated Habit",
-    description: description || "Updated description",
-    frequency: frequency || "WEEKLY",
-    isActive: typeof isActive === "boolean" ? isActive : true,
-    createdAt: "2024-01-01T00:00:00.000Z",
-    updatedAt: "2024-01-05T00:00:00.000Z",
-  };
+  try {
+    const habitId = Number(id);
 
-  res.status(200).json({ habit });
+    const existing = await prisma.habit.findUnique({
+      where: { id: habitId },
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        error: "NotFound",
+        message: "Habit not found.",
+      });
+    }
+
+    const habit = await prisma.habit.update({
+      where: { id: habitId },
+      data: {
+        name: name !== undefined ? name : existing.name,
+        description:
+          description !== undefined ? description : existing.description,
+        frequency: frequency || existing.frequency,
+        isActive:
+          typeof isActive === "boolean" ? isActive : existing.isActive,
+      },
+    });
+
+    res.status(200).json({ habit });
+  } catch (err) {
+    console.error("Error updating habit:", err);
+    res.status(500).json({
+      error: "ServerError",
+      message: "Something went wrong.",
+    });
+  }
 };
 
-// DELETE /api/habits/:id
-// Return success flag
-const deleteHabit = (req, res) => {
-  res.status(200).json({ success: true });
+// DELETE /api/habits/:id (soft delete)
+const deleteHabit = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const habitId = Number(id);
+
+    const existing = await prisma.habit.findUnique({
+      where: { id: habitId },
+    });
+
+    if (!existing) {
+      return res.status(404).json({
+        error: "NotFound",
+        message: "Habit not found.",
+      });
+    }
+
+    await prisma.habit.update({
+      where: { id: habitId },
+      data: { isActive: false },
+    });
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("Error deleting habit:", err);
+    res.status(500).json({
+      error: "ServerError",
+      message: "Something went wrong.",
+    });
+  }
 };
 
 module.exports = {
