@@ -1,5 +1,37 @@
-node_modules
-.env
-dist
-build
+# Node
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Build outputs
+dist/
+build/
+
+# System
 .DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Prisma
+prisma/dev.db
+prisma/*.db
+prisma/*.sqlite
+prisma/migrations/
+
+# Cursor AI generated output (if any)
+generated/
+generated/prisma/
+
+# Logs
+logs
+*.log
+logs/*.log
+
+# Editor/IDE
+.vscode/
+.idea/
+
