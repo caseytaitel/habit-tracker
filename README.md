@@ -10,4 +10,17 @@ POST /api/habits --> createHabit --> validates name and either returns 400 with 
 PUT /api/habit/:id --> updateHabit --> returns updated Habit with status 201
 DELETE /api/habit/:id --> deleteHabit --> deletes Habit with status 200 and success: true message
 
-No DB exists yet, everything is still in-memory placeholder data. Prisma + SQLite will be added in Day 2.
+// DB Integration  -- Day 2 //
+
+Prisma 5.16.2 + SQLite added into Express backend
+schema.prisma:
+    defines Habit model with id, name, description, frequency, isActive, createdAt, updatedAt
+    frequency stored as a string, controller enforces “DAILY” or “WEEKLY”
+prismaClient.js exports prisma object
+	
+Real CRUD functions:
+    GET/POST/PUT/DELETE routes now call Prisma instead of static arrays
+    GET uses prisma.habit.findMany() to return all habits
+    POST validates the req.body, then uses prisma.habit.create() and returns 201 with { habit }
+    PUT checks that the habit exists, then uses prisma.habit.update() and returns 200 with { habit } or 404 if not found
+    DELETE implements a soft delete by setting isActive = false and returns { success: true}
