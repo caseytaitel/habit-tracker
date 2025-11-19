@@ -1,4 +1,4 @@
-# Habit Tracker – Backend V1 Spec (Week 8, Day 1)
+# Habit Tracker – Backend V1 Spec
 
 This spec defines the backend V1 behavior for the Habit Tracker app. The backend is a Node + Express API with no database yet (placeholder data only).
 
