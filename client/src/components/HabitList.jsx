@@ -1,6 +1,6 @@
 import HabitItem from "./HabitItem";
 
-function HabitList({ habits, onEdit, onDelete }) {
+function HabitList({ habits, onEdit, onDelete, onToggleActive, onToggleCompletedToday }) {
   const activeHabits = habits.filter((h) => h.isActive !== false);
 
   if (activeHabits.length === 0) {
@@ -17,6 +17,8 @@ function HabitList({ habits, onEdit, onDelete }) {
             habit={habit}
             onEdit={onEdit}
             onDelete={onDelete}
+            onToggleActive={onToggleActive}
+            onToggleCompletedToday={onToggleCompletedToday}
           />
         ))}
       </ul>

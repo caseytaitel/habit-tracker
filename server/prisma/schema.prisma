@@ -7,14 +7,15 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// We enforce DAILY/WEEKLY and max lengths in application code, not in the DB.
 model Habit {
-  id          Int       @id @default(autoincrement())
-  name        String
-  description String?
-  frequency   String
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             Int       @id @default(autoincrement())
+  name           String
+  description    String?
+  frequency      String
+  isActive       Boolean   @default(true)
+  completedToday Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
+
 

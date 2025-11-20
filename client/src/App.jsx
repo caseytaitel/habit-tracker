@@ -146,6 +146,60 @@ function App() {
     }
   };
 
+  const handleToggleActive = async (id, newIsActive) => {
+    try {
+      setError(null);
+  
+      const res = await fetch(`${API_BASE_URL}/api/habits/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: newIsActive }),
+      });
+  
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || "Failed to update active state");
+      }
+  
+      const data = await res.json();
+      const updated = data.habit;
+  
+      setHabits((prev) =>
+        prev.map((h) => (h.id === updated.id ? updated : h))
+      );
+    } catch (err) {
+      console.error("Error toggling active state:", err);
+      setError(err.message || "Failed to update active state.");
+    }
+  };
+  
+  const handleToggleCompletedToday = async (id, newCompleted) => {
+    try {
+      setError(null);
+  
+      const res = await fetch(`${API_BASE_URL}/api/habits/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completedToday: newCompleted }),
+      });
+  
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || "Failed to update completion");
+      }
+  
+      const data = await res.json();
+      const updated = data.habit;
+  
+      setHabits((prev) =>
+        prev.map((h) => (h.id === updated.id ? updated : h))
+      );
+    } catch (err) {
+      console.error("Error toggling completedToday:", err);
+      setError(err.message || "Failed to update completion.");
+    }
+  };  
+
   // ---- Render ----
 
   return (
@@ -182,6 +236,8 @@ function App() {
             habits={habits}
             onEdit={handleEditHabit}
             onDelete={handleDeleteHabit}
+            onToggleActive={handleToggleActive}
+            onToggleCompletedToday={handleToggleCompletedToday}
           />
         </>
       )}

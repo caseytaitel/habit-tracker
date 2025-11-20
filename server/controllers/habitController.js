@@ -16,40 +16,41 @@ const getHabits = async (req, res) => {
 
 // POST /api/habits
 const createHabit = async (req, res) => {
+  const { name, description, frequency } = req.body;
+
+  if (!name || !name.trim()) {
+    return res.status(400).json({
+      error: "ValidationError",
+      message: "Name is required.",
+      details: {},
+    });
+  }
+
+  if (frequency && !["DAILY", "WEEKLY"].includes(frequency)) {
+    return res.status(400).json({
+      error: "ValidationError",
+      message: "Frequency must be DAILY or WEEKLY.",
+      details: {},
+    });
+  }
+
   try {
-    const { name, description, frequency } = req.body;
-
-    if (!name) {
-      return res.status(400).json({
-        error: "ValidationError",
-        message: "Name is required.",
-        details: {},
-      });
-    }
-
-    if (frequency !== "DAILY" && frequency !== "WEEKLY") {
-      return res.status(400).json({
-        error: "ValidationError",
-        message: "Frequency must be DAILY or WEEKLY.",
-        details: {},
-      });
-    }
-
     const habit = await prisma.habit.create({
       data: {
-        name,
-        description: description || "",
-        frequency,          // stored as String in DB
+        name: name.trim(),
+        description: description ? description.trim() : "",
+        frequency: frequency || "DAILY",
         isActive: true,
+        // completedToday is omitted here; Prisma default = false
       },
     });
 
-    res.status(201).json({ habit });
+    return res.status(201).json({ habit });
   } catch (err) {
     console.error("Error creating habit:", err);
-    res.status(500).json({
+    return res.status(500).json({
       error: "ServerError",
-      message: "Something went wrong.",
+      message: "Failed to create habit.",
     });
   }
 };
@@ -57,11 +58,26 @@ const createHabit = async (req, res) => {
 // PUT /api/habits/:id
 const updateHabit = async (req, res) => {
   const { id } = req.params;
-  const { name, description, frequency, isActive } = req.body;
+  const habitId = Number(id);
+
+  if (Number.isNaN(habitId)) {
+    return res.status(400).json({
+      error: "ValidationError",
+      message: "Invalid habit id.",
+    });
+  }
+
+  const { name, description, frequency, isActive, completedToday } = req.body;
+
+  if (frequency && !["DAILY", "WEEKLY"].includes(frequency)) {
+    return res.status(400).json({
+      error: "ValidationError",
+      message: "Frequency must be DAILY or WEEKLY.",
+      details: {},
+    });
+  }
 
   try {
-    const habitId = Number(id);
-
     const existing = await prisma.habit.findUnique({
       where: { id: habitId },
     });
@@ -82,15 +98,19 @@ const updateHabit = async (req, res) => {
         frequency: frequency || existing.frequency,
         isActive:
           typeof isActive === "boolean" ? isActive : existing.isActive,
+        completedToday:
+          typeof completedToday === "boolean"
+            ? completedToday
+            : existing.completedToday,
       },
     });
 
-    res.status(200).json({ habit });
+    return res.status(200).json({ habit });
   } catch (err) {
     console.error("Error updating habit:", err);
-    res.status(500).json({
+    return res.status(500).json({
       error: "ServerError",
-      message: "Something went wrong.",
+      message: "Failed to update habit.",
     });
   }
 };
