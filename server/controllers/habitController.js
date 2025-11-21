@@ -1,100 +1,57 @@
 const habitService = require("../services/habitService");
+const { validateHabitCreate, validateHabitUpdate } = require("../validators");
+const { NotFoundError } = require("../errors");
 
 // GET /habits
-const getHabits = async (req, res) => {
+const getHabits = async (req, res, next) => {
   try {
-    const habits = await habitService.findAll();
-    res.status(200).json({ habits });
+    const habits = await habitService.getAll();
+    res.json({ habits });
   } catch (err) {
-    console.error("Error fetching habits:", err);
-    res.status(500).json({ error: "ServerError", message: "Failed to fetch habits." });
+    next(err);
   }
 };
 
 // POST /habits
-const createHabit = async (req, res) => {
+const createHabit = async (req, res, next) => {
   try {
-    const { name, description, frequency } = req.body;
-
-    if (!name || typeof name !== "string") {
-      return res.status(400).json({
-        error: "ValidationError",
-        message: "Name is required.",
-      });
-    }
-
-    if (!["DAILY", "WEEKLY"].includes(frequency)) {
-      return res.status(400).json({
-        error: "ValidationError",
-        message: "Frequency must be DAILY or WEEKLY.",
-      });
-    }
-
-    const newHabit = await habitService.create({
-      name,
-      description: description || null,
-      frequency,
-      isActive: true,
-      completedToday: false,
-    });
-
-    res.status(201).json({ habit: newHabit });
+    validateHabitCreate(req.body);
+    const habit = await habitService.create(req.body);
+    res.status(201).json({ habit });
   } catch (err) {
-    console.error("Error creating habit:", err);
-    res.status(500).json({ error: "ServerError", message: "Failed to create habit." });
+    next(err);
   }
 };
 
 // PUT /habits/:id
-const updateHabit = async (req, res) => {
+const updateHabit = async (req, res, next) => {
   try {
+    validateHabitUpdate(req.body);
+
     const habitId = Number(req.params.id);
-    const { name, description, frequency, isActive, completedToday } = req.body;
-
     const existing = await habitService.findById(habitId);
-    if (!existing) {
-      return res.status(404).json({
-        error: "NotFound",
-        message: "Habit not found.",
-      });
-    }
+    if (!existing) throw new NotFoundError("Habit not found");
 
-    const updated = await habitService.update(habitId, {
-      name: name !== undefined ? name : existing.name,
-      description: description !== undefined ? description : existing.description,
-      frequency: frequency || existing.frequency,
-      isActive: typeof isActive === "boolean" ? isActive : existing.isActive,
-      completedToday:
-        typeof completedToday === "boolean"
-          ? completedToday
-          : existing.completedToday,
-    });
-
-    res.status(200).json({ habit: updated });
+    const updated = await habitService.update(habitId, req.body);
+    res.json({ habit: updated });
   } catch (err) {
-    console.error("Error updating habit:", err);
-    res.status(500).json({ error: "ServerError", message: "Failed to update habit." });
+    next(err);
   }
 };
 
 // DELETE (soft delete)
-const deleteHabit = async (req, res) => {
+const deleteHabit = async (req, res, next) => {
   try {
     const habitId = Number(req.params.id);
 
-    const existing = await habitService.findById(habitId);
-    if (!existing) {
-      return res.status(404).json({
-        error: "NotFound",
-        message: "Habit not found.",
-      });
+    const deleted = await habitService.softDelete(habitId);
+    if (!deleted) {
+      throw new NotFoundError("Habit not found.");
     }
 
-    await habitService.softDelete(habitId);
-    res.status(200).json({ success: true });
+    res.json({ success: true });
   } catch (err) {
-    console.error("Error deleting habit:", err);
-    res.status(500).json({ error: "ServerError", message: "Failed to delete habit." });
+    next(err);
   }
 };
 

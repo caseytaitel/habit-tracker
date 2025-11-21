@@ -1,7 +1,7 @@
 const prisma = require("../prismaClient");
 
 // Find all habits (no filters here — controller handles filtering)
-async function findAll() {
+async function getAll() {
   return prisma.habit.findMany();
 }
 
@@ -32,7 +32,7 @@ async function softDelete(id) {
 }
 
 module.exports = {
-  findAll,
+  getAll,
   findById,
   create,
   update,

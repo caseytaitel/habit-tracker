@@ -10,6 +10,15 @@ app.use(express.json());
 
 app.use('/api/habits', habitRoutes);
 
+// Global error handler
+app.use((err, req, res, next) => {
+  const status = err.status || 500;
+  res.status(status).json({
+    error: err.name || "ServerError",
+    message: err.message || "Unexpected error",
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

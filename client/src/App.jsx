@@ -20,19 +20,18 @@ function App() {
       try {
         setIsLoading(true);
         setError(null);
-
+  
         const data = await getHabits();
         setHabits(data.habits || []);
       } catch (err) {
-        console.error("Error fetching habits:", err);
-        setError("Failed to load habits.");
+        setError(err.message);
       } finally {
         setIsLoading(false);
       }
     };
-
+  
     fetchHabits();
-  }, []);
+  }, []);  
 
   // ---- Handlers ----
 
@@ -40,57 +39,55 @@ function App() {
     try {
       setIsSubmitting(true);
       setError(null);
-
+  
       const data = await createHabit(values);
       const newHabit = data.habit;
-
+  
       setHabits((prev) => [...prev, newHabit]);
       setFormMode("create");
       setSelectedHabit(null);
     } catch (err) {
-      console.error("Error creating habit:", err);
-      setError("Failed to create habit.");
+      setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
-  };
+  };  
 
   const handleUpdateHabit = async (values) => {
     if (!selectedHabit) return;
-
+    const id = selectedHabit.id;
+  
     try {
       setIsSubmitting(true);
       setError(null);
-
-      const data = await updateHabit(selectedHabit.id, values);
+  
+      const data = await updateHabit(id, values);
       const updated = data.habit;
-
+  
       setHabits((prev) =>
         prev.map((h) => (h.id === updated.id ? updated : h))
       );
-
+  
       setFormMode("create");
       setSelectedHabit(null);
     } catch (err) {
-      console.error("Error updating habit:", err);
-      setError("Failed to update habit.");
+      setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
-  };
+  };  
 
   const handleDeleteHabit = async (id) => {
     try {
       setError(null);
-
+  
       await deleteHabit(id);
-
+  
       setHabits((prev) => prev.filter((h) => h.id !== id));
     } catch (err) {
-      console.error("Error deleting habit:", err);
-      setError("Failed to delete habit.");
+      setError(err.message);
     }
-  };
+  };  
 
   const handleEditHabit = (habit) => {
     setFormMode("edit");
