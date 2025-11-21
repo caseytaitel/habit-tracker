@@ -1,87 +1,57 @@
-const prisma = require("../prismaClient");
+const habitService = require("../services/habitService");
 
-// GET /api/habits
+// GET /habits
 const getHabits = async (req, res) => {
   try {
-    const habits = await prisma.habit.findMany();
+    const habits = await habitService.findAll();
     res.status(200).json({ habits });
   } catch (err) {
-    console.error("Error getting habits:", err);
-    res.status(500).json({
-      error: "ServerError",
-      message: "Something went wrong.",
-    });
+    console.error("Error fetching habits:", err);
+    res.status(500).json({ error: "ServerError", message: "Failed to fetch habits." });
   }
 };
 
-// POST /api/habits
+// POST /habits
 const createHabit = async (req, res) => {
-  const { name, description, frequency } = req.body;
-
-  if (!name || !name.trim()) {
-    return res.status(400).json({
-      error: "ValidationError",
-      message: "Name is required.",
-      details: {},
-    });
-  }
-
-  if (frequency && !["DAILY", "WEEKLY"].includes(frequency)) {
-    return res.status(400).json({
-      error: "ValidationError",
-      message: "Frequency must be DAILY or WEEKLY.",
-      details: {},
-    });
-  }
-
   try {
-    const habit = await prisma.habit.create({
-      data: {
-        name: name.trim(),
-        description: description ? description.trim() : "",
-        frequency: frequency || "DAILY",
-        isActive: true,
-        // completedToday is omitted here; Prisma default = false
-      },
+    const { name, description, frequency } = req.body;
+
+    if (!name || typeof name !== "string") {
+      return res.status(400).json({
+        error: "ValidationError",
+        message: "Name is required.",
+      });
+    }
+
+    if (!["DAILY", "WEEKLY"].includes(frequency)) {
+      return res.status(400).json({
+        error: "ValidationError",
+        message: "Frequency must be DAILY or WEEKLY.",
+      });
+    }
+
+    const newHabit = await habitService.create({
+      name,
+      description: description || null,
+      frequency,
+      isActive: true,
+      completedToday: false,
     });
 
-    return res.status(201).json({ habit });
+    res.status(201).json({ habit: newHabit });
   } catch (err) {
     console.error("Error creating habit:", err);
-    return res.status(500).json({
-      error: "ServerError",
-      message: "Failed to create habit.",
-    });
+    res.status(500).json({ error: "ServerError", message: "Failed to create habit." });
   }
 };
 
-// PUT /api/habits/:id
+// PUT /habits/:id
 const updateHabit = async (req, res) => {
-  const { id } = req.params;
-  const habitId = Number(id);
-
-  if (Number.isNaN(habitId)) {
-    return res.status(400).json({
-      error: "ValidationError",
-      message: "Invalid habit id.",
-    });
-  }
-
-  const { name, description, frequency, isActive, completedToday } = req.body;
-
-  if (frequency && !["DAILY", "WEEKLY"].includes(frequency)) {
-    return res.status(400).json({
-      error: "ValidationError",
-      message: "Frequency must be DAILY or WEEKLY.",
-      details: {},
-    });
-  }
-
   try {
-    const existing = await prisma.habit.findUnique({
-      where: { id: habitId },
-    });
+    const habitId = Number(req.params.id);
+    const { name, description, frequency, isActive, completedToday } = req.body;
 
+    const existing = await habitService.findById(habitId);
     if (!existing) {
       return res.status(404).json({
         error: "NotFound",
@@ -89,43 +59,30 @@ const updateHabit = async (req, res) => {
       });
     }
 
-    const habit = await prisma.habit.update({
-      where: { id: habitId },
-      data: {
-        name: name !== undefined ? name : existing.name,
-        description:
-          description !== undefined ? description : existing.description,
-        frequency: frequency || existing.frequency,
-        isActive:
-          typeof isActive === "boolean" ? isActive : existing.isActive,
-        completedToday:
-          typeof completedToday === "boolean"
-            ? completedToday
-            : existing.completedToday,
-      },
+    const updated = await habitService.update(habitId, {
+      name: name !== undefined ? name : existing.name,
+      description: description !== undefined ? description : existing.description,
+      frequency: frequency || existing.frequency,
+      isActive: typeof isActive === "boolean" ? isActive : existing.isActive,
+      completedToday:
+        typeof completedToday === "boolean"
+          ? completedToday
+          : existing.completedToday,
     });
 
-    return res.status(200).json({ habit });
+    res.status(200).json({ habit: updated });
   } catch (err) {
     console.error("Error updating habit:", err);
-    return res.status(500).json({
-      error: "ServerError",
-      message: "Failed to update habit.",
-    });
+    res.status(500).json({ error: "ServerError", message: "Failed to update habit." });
   }
 };
 
-// DELETE /api/habits/:id (soft delete)
+// DELETE (soft delete)
 const deleteHabit = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    const habitId = Number(id);
+    const habitId = Number(req.params.id);
 
-    const existing = await prisma.habit.findUnique({
-      where: { id: habitId },
-    });
-
+    const existing = await habitService.findById(habitId);
     if (!existing) {
       return res.status(404).json({
         error: "NotFound",
@@ -133,18 +90,11 @@ const deleteHabit = async (req, res) => {
       });
     }
 
-    await prisma.habit.update({
-      where: { id: habitId },
-      data: { isActive: false },
-    });
-
+    await habitService.softDelete(habitId);
     res.status(200).json({ success: true });
   } catch (err) {
     console.error("Error deleting habit:", err);
-    res.status(500).json({
-      error: "ServerError",
-      message: "Something went wrong.",
-    });
+    res.status(500).json({ error: "ServerError", message: "Failed to delete habit." });
   }
 };
 

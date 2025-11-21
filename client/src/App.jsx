@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import HabitForm from "./components/HabitForm";
 import HabitList from "./components/HabitList";
+import { getHabits, createHabit, updateHabit, deleteHabit } from "./api";
 
 const API_BASE_URL = "http://localhost:3000";
 
@@ -20,12 +21,7 @@ function App() {
         setIsLoading(true);
         setError(null);
 
-        const res = await fetch(`${API_BASE_URL}/api/habits`);
-        if (!res.ok) {
-          throw new Error("Failed to fetch habits");
-        }
-
-        const data = await res.json();
+        const data = await getHabits();
         setHabits(data.habits || []);
       } catch (err) {
         console.error("Error fetching habits:", err);
@@ -45,25 +41,15 @@ function App() {
       setIsSubmitting(true);
       setError(null);
 
-      const res = await fetch(`${API_BASE_URL}/api/habits`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message || "Failed to create habit");
-      }
-
-      const data = await res.json();
+      const data = await createHabit(values);
       const newHabit = data.habit;
+
       setHabits((prev) => [...prev, newHabit]);
       setFormMode("create");
       setSelectedHabit(null);
     } catch (err) {
       console.error("Error creating habit:", err);
-      setError(err.message || "Failed to create habit.");
+      setError("Failed to create habit.");
     } finally {
       setIsSubmitting(false);
     }
@@ -76,21 +62,7 @@ function App() {
       setIsSubmitting(true);
       setError(null);
 
-      const res = await fetch(
-        `${API_BASE_URL}/api/habits/${selectedHabit.id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(values),
-        }
-      );
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message || "Failed to update habit");
-      }
-
-      const data = await res.json();
+      const data = await updateHabit(selectedHabit.id, values);
       const updated = data.habit;
 
       setHabits((prev) =>
@@ -101,7 +73,7 @@ function App() {
       setSelectedHabit(null);
     } catch (err) {
       console.error("Error updating habit:", err);
-      setError(err.message || "Failed to update habit.");
+      setError("Failed to update habit.");
     } finally {
       setIsSubmitting(false);
     }
@@ -111,20 +83,12 @@ function App() {
     try {
       setError(null);
 
-      const res = await fetch(`${API_BASE_URL}/api/habits/${id}`, {
-        method: "DELETE",
-      });
+      await deleteHabit(id);
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message || "Failed to delete habit");
-      }
-
-      // Option 1: hide deleted habits from list (since isActive=false)
       setHabits((prev) => prev.filter((h) => h.id !== id));
     } catch (err) {
       console.error("Error deleting habit:", err);
-      setError(err.message || "Failed to delete habit.");
+      setError("Failed to delete habit.");
     }
   };
 
